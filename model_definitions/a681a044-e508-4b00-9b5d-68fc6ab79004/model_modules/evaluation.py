@@ -70,13 +70,37 @@ def evaluate(data_conf, model_conf, **kwargs):
     metrics.plot_roc_curve(model, X_test, y_test)
     save_plot('ROC Curve')
 
+    # Fairlearn
+    from fairlearn.metrics import MetricFrame, false_positive_rate, true_positive_rate, selection_rate, count
+    from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_curve
+    nation = X_test[['pais_COLOMBIA_value_1_0']]
+    metricsf = {
+        'accuracy': accuracy_score,
+        'precision': precision_score,
+        'recall': recall_score,
+        'false positive rate': false_positive_rate,
+        'true positive rate': true_positive_rate,
+        'selection rate': selection_rate,
+        'count': count}
+    metric_frame = MetricFrame(metrics=metricsf,
+                               y_true=y_test,
+                               y_pred=y_pred,
+                               sensitive_features=nation)
+    metric_frame.by_group.plot.bar(
+        subplots=True,
+        layout=[3, 3],
+        legend=False,
+        figsize=[12, 8],
+    )
+    save_plot('Fairlearn plots')
+
     # Importance Plot
     importance_values = model[0].coef_[0]
     feature_importance = {model.feature_names[key]: value for (key, value) in enumerate(importance_values)}
     plt.bar(range(len(importance_values)), importance_values)
     plt.xticks(ticks = range(len(importance_values)), labels = model.feature_names, rotation = 'vertical')
     save_plot('Feature Importance')
-
+    
     predictions_table = "{}_tmp".format(data_conf["predictions"]).lower()
     copy_to_sql(df=y_pred_tdf, table_name=predictions_table, index=False, if_exists="replace", temporary=False)
 
